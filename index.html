@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prontuário SOAP Odontológico Domiciliar</title>
+    <!-- Carregamento do Tailwind CSS para estilização moderna e responsiva -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Configuração da fonte Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb; /* Fundo suave */
+        }
+        /* Estilos personalizados */
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            cursor: pointer;
+        }
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 8px;
+            accent-color: #059669;
+            border-radius: 4px;
+        }
+        .form-section {
+            border-left: 4px solid #10b981;
+            padding-left: 1rem;
+            margin-bottom: 2rem;
+            background-color: #f0fdf4;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+        }
+        .form-section h2 {
+            margin-top: 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #d1d5db;
+        }
+
+        /* Estilos do Odontograma SVG */
+        .tooth-number {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #10b981; /* Cor primária para o dente selecionado */
+        }
+
+        .tooth-face {
+            fill: #e5e7eb; /* Cor padrão da face (normal) */
+            stroke: #9ca3af;
+            stroke-width: 0.5;
+            cursor: pointer;
+            transition: fill 0.2s;
+        }
+        .tooth-face:hover {
+            opacity: 0.8;
+        }
+        .odont-tool.selected {
+            outline: 3px solid #10b981;
+            outline-offset: 2px;
+            box-shadow: 0 0 0 2px #fff;
+        }
+        /* Definições de cores para o odontograma */
+        .status-carie { fill: #ef4444 !important; } /* Vermelho: Cárie */
+        .status-restauracao { fill: #34d399 !important; } /* Verde: Restauração */
+        .status-extrair { fill: #6366f1 !important; } /* Azul: Extração (Necessidade) */
+        .status-ausente { fill: #4b5563 !important; } /* Cinza Escuro: Ausente */
+        .status-none { fill: #e5e7eb !important; } /* Cor padrão */
+
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <div class="max-w-4xl mx-auto bg-white shadow-xl rounded-2xl p-6 md:p-10">
+        <header class="mb-8 border-b pb-4">
+            <h1 class="text-3xl font-extrabold text-gray-800 mb-2">Prontuário de Visita Domiciliar - Padrão SOAP</h1>
+            <p class="text-gray-500">Cirurgião-Dentista | Documentação padronizada para registro clínico.</p>
+        </header>
+
+        <form id="dentalVisitForm">
+
+            <!-- INFORMAÇÕES BÁSICAS DE IDENTIFICAÇÃO (Fora do SOAP) -->
+            <div class="mb-6 p-4 border rounded-lg bg-gray-50">
+                <h2 class="text-lg font-bold text-gray-700 mb-3">Identificação do Paciente</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="nome" class="block text-sm font-medium text-gray-700">Nome</label>
+                        <input type="text" id="nome" name="nome" required
+                               class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border">
+                    </div>
+                    <div>
+                        <label for="dataNascimento" class="block text-sm font-medium text-gray-700">Data de Nascimento</label>
+                        <input type="date" id="dataNascimento" name="dataNascimento" required
+                               class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border">
+                    </div>
+                    <div class="md:col-span-1">
+                        <label for="endereco" class="block text-sm font-medium text-gray-700">Endereço</label>
+                        <input type="text" id="endereco" name="endereco" required
+                               class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1. S - SUBJETIVO -->
+            <div class="form-section">
+                <h2 class="text-xl font-bold text-gray-700 mb-4">1. Subjetivo (S)</h2>
+                <p class="text-sm text-gray-600 mb-4">Informações relatadas pelo paciente e/ou acompanhante (queixas, sintomas, histórico).</p>
+
+                <div class="mb-4">
+                    <label for="queixaPrincipal" class="block text-sm font-medium text-gray-700">Queixa Principal (O que te trouxe aqui?)</label>
+                    <textarea id="queixaPrincipal" name="queixaPrincipal" rows="2"
+                              class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"></textarea>
+                </div>
+
+                <div class="mb-6">
+                    <label for="historicoSaude" class="block text-sm font-medium text-gray-700">Histórico de Saúde (Doenças crônicas, medicações, alergias)</label>
+                    <textarea id="historicoSaude" name="historicoSaude" rows="3"
+                              class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"></textarea>
+                </div>
+
+                <!-- Hábitos de Vida (Relatado) -->
+                <h3 class="text-md font-semibold text-gray-700 mb-2">Hábitos de Vida</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                    <!-- Higiene Bucal -->
+                    <fieldset class="checkbox-group p-3 border rounded-lg bg-white">
+                        <legend class="text-sm font-medium text-gray-700 mb-1">Higiene Bucal</legend>
+                        <label><input type="checkbox" name="higiene" value="escovacao_2x"> Escovação ≥ 2x/dia</label>
+                        <label><input type="checkbox" name="higiene" value="fio_diario"> Uso de fio dental diário</label>
+                        <label><input type="checkbox" name="higiene" value="escova_inadequada"> Escova inadequada</label>
+                        <label><input type="checkbox" name="higiene" value="ajuda_terceiros"> Depende de terceiros (higiene)</label>
+                    </fieldset>
+
+                    <!-- Dieta -->
+                    <fieldset class="checkbox-group p-3 border rounded-lg bg-white">
+                        <legend class="text-sm font-medium text-gray-700 mb-1">Dieta</legend>
+                        <label><input type="checkbox" name="dieta" value="alto_carboidrato"> Alto consumo de carboidratos</label>
+                        <label><input type="checkbox" name="dieta" value="refrigerantes"> Consumo frequente de bebidas ácidas</label>
+                        <label><input type="checkbox" name="dieta" value="dieta_controlada"> Dieta controlada (ex: diabetes)</label>
+                    </fieldset>
+
+                    <!-- Vícios -->
+                    <fieldset class="checkbox-group p-3 border rounded-lg bg-white">
+                        <legend class="text-sm font-medium text-gray-700 mb-1">Vícios</legend>
+                        <label><input type="checkbox" name="vicios" value="tabagismo"> Tabagismo (Fumante)</label>
+                        <label><input type="checkbox" name="vicios" value="alcoolismo"> Alcoolismo</label>
+                        <label><input type="checkbox" name="vicios" value="nenhum_vicio"> Nenhum vício relatado</label>
+                    </fieldset>
+                </div>
+            </div>
+
+            <!-- 2. O - OBJETIVO -->
+            <div class="form-section">
+                <h2 class="text-xl font-bold text-gray-700 mb-4">2. Objetivo (O)</h2>
+                <p class="text-sm text-gray-600 mb-4">Dados observáveis e mensuráveis obtidos pelo exame clínico do dentista.</p>
+
+                <!-- Exame Físico - Inspeção Visual e Palpação -->
+                <div class="mb-6 p-4 border rounded-lg bg-white">
+                    <h3 class="text-md font-semibold text-gray-700 mb-2">Exame Clínico Intra e Extrabucal</h3>
+                    <p class="text-sm text-gray-500 mb-2">Marque a condição principal de cada área (Normal / Alteração).</p>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="p-2">
+                            <p class="font-medium text-sm mb-1">Dentes e Gengivas</p>
+                            <label class="block"><input type="radio" name="dentesGengivas" value="normal" class="mr-2" checked> Normal</label>
+                            <label class="block"><input type="radio" name="dentesGengivas" value="alteracao" class="mr-2"> Alteração</label>
+                        </div>
+                        <div class="p-2">
+                            <p class="font-medium text-sm mb-1">Língua e Mucosas</p>
+                            <label class="block"><input type="radio" name="linguaMucosas" value="normal" class="mr-2" checked> Normal</label>
+                            <label class="block"><input type="radio" name="linguaMucosas" value="alteracao" class="mr-2"> Alteração</label>
+                        </div>
+                        <div class="p-2">
+                            <p class="font-medium text-sm mb-1">Palpação Cervical (Pescoço)</p>
+                            <label class="block"><input type="radio" name="palpacaoCervical" value="normal" class="mr-2" checked> Normal</label>
+                            <label class="block"><input type="radio" name="palpacaoCervical" value="alteracao" class="mr-2"> Linfonodos palpáveis</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lesões e Necessidades de Tratamento -->
+                <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <fieldset class="checkbox-group p-3 border rounded-lg bg-white">
+                        <legend class="text-sm font-medium text-gray-700 mb-1">Identificação de Lesões</legend>
+                        <label><input type="checkbox" name="lesoes" value="caries_ativas"> Cáries ativas / Lesões de cárie</label>
+                        <label><input type="checkbox" name="lesoes" value="doenca_periodontal"> Doença periodontal (Gengivite/Periodontite)</label>
+                        <label><input type="checkbox" name="lesoes" value="lesoes_mucosa"> Lesões de mucosa (ex: estomatite, candidíase)</label>
+                        <label><input type="checkbox" name="lesoes" value="outras_lesoes"> Outras lesões/alterações</label>
+                    </fieldset>
+
+                    <fieldset class="checkbox-group p-3 border rounded-lg bg-white">
+                        <legend class="text-sm font-medium text-gray-700 mb-1">Necessidades de Tratamento Observadas</legend>
+                        <label><input type="checkbox" name="necessidades" value="restauracao"> Restauração</label>
+                        <label><input type="checkbox" name="necessidades" value="exodontia"> Exodontia (Extração)</label>
+                        <label><input type="checkbox" name="necessidades" value="protese_nova"> Prótese (Confecção de nova)</label>
+                        <label><input type="checkbox" name="necessidades" value="endodontia"> Endodontia (Tratamento de Canal)</label>
+                    </fieldset>
+                </div>
+                
+                <!-- ODONTOGRAMA SIMPLIFICADO POR DENTE SELECIONADO -->
+                <div class="mb-6 p-4 border rounded-lg bg-white">
+                    <h3 class="text-md font-semibold text-gray-700 mb-2">Odontograma Simplificado (Registro por Dente)</h3>
+                    
+                    <div class="flex flex-col md:flex-row gap-4 items-center mb-4">
+                        <div class="w-full md:w-1/3">
+                            <label for="toothSelector" class="block text-sm font-medium text-gray-700">Selecione o Dente (FDI)</label>
+                            <select id="toothSelector" 
+                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border">
+                                <option value="" disabled selected>-- Selecionar Dente --</option>
+                                <!-- Opções geradas pelo JS -->
+                            </select>
+                        </div>
+                        
+                        <div class="w-full md:w-2/3">
+                            <!-- Paleta de Ferramentas/Legenda -->
+                            <div id="odontogram-palette" class="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg text-xs justify-center md:justify-start">
+                                <span class="font-semibold text-gray-700 self-center mr-1">Status:</span>
+                                <button type="button" data-status="none" class="odont-tool px-2 py-1 rounded-full border border-gray-400 bg-gray-200 text-gray-700 selected">Normal</button>
+                                <button type="button" data-status="carie" class="odont-tool px-2 py-1 rounded-full text-white font-medium" style="background-color: #ef4444;">Cárie</button>
+                                <button type="button" data-status="restauracao" class="odont-tool px-2 py-1 rounded-full text-white font-medium" style="background-color: #34d399;">Restauração</button>
+                                <button type="button" data-status="extrair" class="odont-tool px-2 py-1 rounded-full text-white font-medium" style="background-color: #6366f1;">Extração</button>
+                                <button type="button" data-status="ausente" class="odont-tool px-2 py-1 rounded-full text-white font-medium" style="background-color: #4b5563;">Ausente</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visualização Dente Selecionado (SVG) -->
+                    <div id="odontogram-container" class="flex justify-center items-center p-4 border border-gray-300 rounded-lg h-40 bg-gray-50">
+                        <svg id="odontogram-svg" width="100" height="100" viewBox="0 0 100 100">
+                            <!-- O dente será renderizado aqui -->
+                        </svg>
+                        <p id="placeholder-text" class="text-gray-500 text-sm">Selecione um dente para começar o registro.</p>
+                    </div>
+
+                    <label for="odontograma_dados" class="block text-sm font-medium text-gray-700 mt-4">Dados Gerados do Odontograma (Notação Clínica)</label>
+                    <textarea id="odontograma_dados" name="odontograma_notacao" rows="3" readonly
+                              placeholder="Os dados de todos os dentes registrados serão listados aqui automaticamente. Ex: 16-O:Cárie | 45-V:Restauração | 38:Ausente"
+                              class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border bg-gray-100"></textarea>
+                </div>
+                
+                <!-- Avaliação Funcional (Mastigação, Deglutição, Fala) -->
+                <h3 class="text-md font-semibold text-gray-700 mb-2">Avaliação Funcional</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-white">
+                    <div>
+                        <label for="mastigacao" class="block text-sm font-medium text-gray-700">Mastigação</label>
+                        <select id="mastigacao" name="mastigacao"
+                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border">
+                            <option value="normal">Normal / Sem queixas</option>
+                            <option value="dificuldade">Dificuldade/Dor</option>
+                            <option value="ineficaz">Ineficaz</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="degluticao" class="block text-sm font-medium text-gray-700">Deglutição</label>
+                        <select id="degluticao" name="degluticao"
+                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border">
+                            <option value="normal">Normal / Sem queixas</option>
+                            <option value="disfagia">Disfagia (Dificuldade)</option>
+                            <option value="alteracao_associada">Alteração associada</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="fala" class="block text-sm font-medium text-gray-700">Fala</label>
+                        <select id="fala" name="fala"
+                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border">
+                            <option value="normal">Normal / Sem alterações</option>
+                            <option value="dislalia">Dislalia / Alteração da dicção</option>
+                            <option value="prejudicada_protese">Prejudicada por prótese</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Condição das Próteses (Objetivo) -->
+                <h3 class="text-md font-semibold text-gray-700 mb-2">Condição das Próteses</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-lg bg-white">
+                    <fieldset class="checkbox-group">
+                        <legend class="text-sm font-medium text-gray-700 mb-1">Próteses Existentes</legend>
+                        <label><input type="checkbox" name="proteseExistente" value="total_superior"> Prótese Total Superior</label>
+                        <label><input type="checkbox" name="proteseExistente" value="total_inferior"> Prótese Total Inferior</label>
+                        <label><input type="checkbox" name="proteseExistente" value="parcial_removivel"> Prótese Parcial Removível (PPR)</label>
+                        <label><input type="checkbox" name="proteseExistente" value="nenhuma"> Nenhuma Prótese</label>
+                    </fieldset>
+
+                    <fieldset class="checkbox-group">
+                        <legend class="text-sm font-medium text-gray-700 mb-1">Necessidade de Intervenção na Prótese</legend>
+                        <label><input type="checkbox" name="necessidadeProtese" value="manutencao"> Necessita de manutenção/higiene</label>
+                        <label><input type="checkbox" name="necessidadeProtese" value="reparo"> Necessita de reparo/reajuste</label>
+                        <label><input type="checkbox" name="necessidadeProtese" value="conf_nova"> Necessidade de confecção de nova prótese</label>
+                        <label><input type="checkbox" name="necessidadeProtese" value="avaliacao_periodica"> Avaliação periódica (sem alteração)</label>
+                    </fieldset>
+                </div>
+            </div>
+
+            <!-- 3. A - AVALIAÇÃO -->
+            <div class="form-section">
+                <h2 class="text-xl font-bold text-gray-700 mb-4">3. Avaliação (A)</h2>
+                <p class="text-sm text-gray-600 mb-4">Hipótese diagnóstica e conclusão profissional (análise dos dados S e O).</p>
+
+                <div class="mb-6">
+                    <label for="hipoteseDiagnostica" class="block text-sm font-medium text-gray-700">Hipótese Diagnóstica / Conclusão</label>
+                    <textarea id="hipoteseDiagnostica" name="hipoteseDiagnostica" rows="3"
+                              placeholder="Ex: Risco alto de cárie devido à higiene ineficaz e dieta. Necessidade de PPR superior devido à perda dentária."
+                              class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"></textarea>
+                </div>
+
+                <h3 class="text-md font-semibold text-gray-700 mb-2">Avaliação de Fatores de Risco</h3>
+                <div class="checkbox-group p-3 border rounded-lg bg-white">
+                    <label><input type="checkbox" name="risco" value="risco_carie_alto"> Risco de cárie alto</label>
+                    <label><input type="checkbox" name="risco" value="risco_cancer_oral"> Fator de risco para Câncer Oral (ex: tabagismo)</label>
+                    <label><input type="checkbox" name="risco" value="condicao_cronica"> Condição sistêmica crônica afeta saúde bucal</label>
+                    <label><input type="checkbox" name="risco" value="dependencia"> Paciente dependente para higiene bucal</label>
+                </div>
+            </div>
+
+            <!-- 4. P - PLANO -->
+            <div class="form-section">
+                <h2 class="text-xl font-bold text-gray-700 mb-4">4. Plano (P)</h2>
+                <p class="text-sm text-gray-600 mb-4">Condutas propostas (tratamentos, orientações, encaminhamentos).</p>
+
+                <div class="mb-6">
+                    <label for="orientacao" class="block text-sm font-medium text-gray-700">Orientação Realizada</label>
+                    <textarea id="orientacao" name="orientacao" rows="3"
+                              placeholder="Detalhe as orientações educativas (higiene, dieta, uso correto de prótese, etc.)."
+                              class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"></textarea>
+                </div>
+
+                <div class="mb-6">
+                    <label for="condutasPropostas" class="block text-sm font-medium text-gray-700">Plano de Tratamento / Encaminhamentos</label>
+                    <textarea id="condutasPropostas" name="condutasPropostas" rows="4"
+                              placeholder="Condutas propostas: Exames adicionais, plano terapêutico, agendamento na UBS, encaminhamento para outras especialidades (Fonoaudiologia, Medicina, etc.)."
+                              class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"></textarea>
+                </div>
+            </div>
+
+            <!-- ÁREA DE SUBMISSÃO E E-MAIL -->
+            <div id="submission-area" class="mt-8 pt-4 border-t flex flex-col md:flex-row justify-between items-stretch md:items-end gap-4">
+                
+                <div class="w-full md:w-1/3">
+                    <label for="emailDestinatario" class="block text-sm font-medium text-gray-700">E-mail do Destinatário</label>
+                    <input type="email" id="emailDestinatario" name="emailDestinatario" value="gustavo.nardi@sorribauru.com.br" required
+                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2 border"
+                           placeholder="ex: coordenação@saude.gov.br">
+                </div>
+
+                <button type="submit"
+                        class="w-full md:w-auto px-6 py-3 bg-green-600 text-white font-semibold rounded-xl shadow-lg hover:bg-green-700 transition duration-300 transform hover:scale-105">
+                    Salvar e Enviar SOAP
+                </button>
+            </div>
+            
+        </form>
+        
+        <!-- CONFIRMAÇÃO E SIMULAÇÃO DE E-MAIL ENVIADO -->
+        <div id="email-confirmation" class="mt-8 hidden p-6 bg-blue-50 border-2 border-blue-300 rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-blue-800 mb-2 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-2 4v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7"/>
+                </svg>
+                SIMULAÇÃO: E-mail de Registro Enviado!
+            </h3>
+            <p class="text-gray-700 mb-4">O registro da visita domiciliar foi compilado no formato de relatório e simulado o envio para:</p>
+            <p class="font-bold text-blue-700 mb-4" id="target-email-display"></p>
+            
+            <div class="p-4 bg-white border border-gray-200 rounded-md max-h-96 overflow-y-auto">
+                <h4 class="font-semibold text-lg border-b pb-1 mb-2 text-gray-800">Corpo do Relatório SOAP (Anexo/Conteúdo)</h4>
+                <pre id="report-body" class="whitespace-pre-wrap text-sm text-gray-800"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variáveis globais para Firebase (manter para conformidade, mesmo que o salvamento seja simulado)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // --- LÓGICA DO ODONTOGRAMA ---
+        const odontogramData = {}; 
+        let currentStatus = 'none'; 
+        let currentToothId = null; 
+
+        const statusMap = {
+            'carie': 'Cárie',
+            'restauracao': 'Restauração',
+            'extrair': 'Extração',
+            'ausente': 'Ausente',
+            'none': 'Normal'
+        };
+        const statusMapVerbose = {
+            'escovacao_2x': 'Escovação ≥ 2x/dia',
+            'fio_diario': 'Uso de fio dental diário',
+            'escova_inadequada': 'Escova inadequada',
+            'ajuda_terceiros': 'Depende de terceiros (higiene)',
+            'alto_carboidrato': 'Alto consumo de carboidratos',
+            'refrigerantes': 'Consumo frequente de bebidas ácidas',
+            'dieta_controlada': 'Dieta controlada (ex: diabetes)',
+            'tabagismo': 'Tabagismo (Fumante)',
+            'alcoolismo': 'Alcoolismo',
+            'nenhum_vicio': 'Nenhum vício relatado',
+            'caries_ativas': 'Cáries ativas / Lesões de cárie',
+            'doenca_periodontal': 'Doença periodontal (Gengivite/Periodontite)',
+            'lesoes_mucosa': 'Lesões de mucosa (ex: estomatite, candidíase)',
+            'outras_lesoes': 'Outras lesões/alterações',
+            'restauracao': 'Restauração',
+            'exodontia': 'Exodontia (Extração)',
+            'protese_nova': 'Prótese (Confecção de nova)',
+            'endodontia': 'Endodontia (Tratamento de Canal)',
+            'total_superior': 'Prótese Total Superior',
+            'total_inferior': 'Prótese Total Inferior',
+            'parcial_removivel': 'Prótese Parcial Removível (PPR)',
+            'nenhuma': 'Nenhuma Prótese',
+            'manutencao': 'Necessita de manutenção/higiene',
+            'reparo': 'Necessita de reparo/reajuste',
+            'conf_nova': 'Necessidade de confecção de nova prótese',
+            'avaliacao_periodica': 'Avaliação periódica (sem alteração)',
+            'risco_carie_alto': 'Risco de cárie alto',
+            'risco_cancer_oral': 'Fator de risco para Câncer Oral (ex: tabagismo)',
+            'condicao_cronica': 'Condição sistêmica crônica afeta saúde bucal',
+            'dependencia': 'Paciente dependente para higiene bucal',
+            // Mapeamento para Selects (degluticao, fala, mastigacao)
+            'normal': 'Normal / Sem queixas',
+            'dificuldade': 'Dificuldade/Dor',
+            'ineficaz': 'Ineficaz',
+            'disfagia': 'Disfagia (Dificuldade)',
+            'alteracao_associada': 'Alteração associada',
+            'dislalia': 'Dislalia / Alteração da dicção',
+            'prejudicada_protese': 'Prejudicada por prótese',
+        };
+
+        // Geração da lista completa de dentes (Permanentes e Decíduos)
+        const permanentTeeth = [
+            18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28, 
+            48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38
+        ];
+        const primaryTeeth = [
+            55, 54, 53, 52, 51, 61, 62, 63, 64, 65,
+            85, 84, 83, 82, 81, 71, 72, 73, 74, 75
+        ];
+        const allTeeth = [].concat(permanentTeeth, primaryTeeth).sort((a, b) => a - b);
+        
+        // --- FUNÇÕES DE LÓGICA DE DADOS DO ODONTOGRAMA ---
+        
+        const getOdontogramNotations = () => {
+            const notations = [];
+            const toothOrder = [
+                18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28, 
+                55, 54, 53, 52, 51, 61, 62, 63, 64, 65, 
+                85, 84, 83, 82, 81, 71, 72, 73, 74, 75, 
+                48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38  
+            ];
+
+            toothOrder.forEach(id => {
+                const toothId = String(id);
+                const tooth = odontogramData[toothId];
+                
+                if (!tooth) return;
+
+                const affectedFaces = [];
+                
+                if (tooth['full_tooth_status'] === 'ausente') {
+                    notations.push(`${toothId}: ${statusMap['ausente']}`);
+                    return; 
+                }
+                
+                const faces = ['V', 'M', 'O', 'D', (id >= 10 && id < 30) || (id >= 50 && id < 70) ? 'P' : 'L']; 
+                
+                faces.forEach(face => {
+                    const statusKey = tooth[face];
+                    if (statusKey && statusKey !== 'none') {
+                        affectedFaces.push(`${face}:${statusMap[statusKey]}`);
+                    }
+                });
+
+                if (affectedFaces.length > 0) {
+                    notations.push(`${toothId}-${affectedFaces.join(',')}`);
+                }
+            });
+            return notations.join(' | ');
+        };
+
+        const updateOdontogramDisplay = () => {
+            const outputTextarea = document.getElementById('odontograma_dados');
+            outputTextarea.value = getOdontogramNotations();
+        };
+
+        const applyStatusToSvg = (toothId) => {
+            const toothFaces = document.querySelectorAll('#odontogram-svg .tooth-face');
+            const currentTooth = odontogramData[toothId] || {};
+            const isAusente = currentTooth['full_tooth_status'] === 'ausente';
+
+            toothFaces.forEach(face => {
+                const faceKey = face.getAttribute('data-face');
+                face.classList.remove('status-carie', 'status-restauracao', 'status-extrair', 'status-ausente');
+                
+                if (isAusente) {
+                    face.classList.add('status-ausente');
+                } else {
+                    const faceStatus = currentTooth[faceKey] || 'none';
+                    if (faceStatus !== 'none') {
+                         face.classList.add(`status-${faceStatus}`);
+                    }
+                }
+            });
+        };
+
+        const handleFaceClick = (event) => {
+            if (!currentToothId) return;
+
+            const faceElement = event.target;
+            const faceKey = faceElement.getAttribute('data-face');
+            
+            if (!faceKey) return;
+
+            if (!odontogramData[currentToothId]) {
+                odontogramData[currentToothId] = { 'full_tooth_status': 'none' };
+            }
+
+            const currentTooth = odontogramData[currentToothId];
+            
+            if (currentStatus === 'ausente') {
+                if (currentTooth['full_tooth_status'] === 'ausente') {
+                    currentTooth['full_tooth_status'] = 'none'; 
+                } else {
+                    for (const key in currentTooth) {
+                        if (key !== 'full_tooth_status') {
+                            delete currentTooth[key];
+                        }
+                    }
+                    currentTooth['full_tooth_status'] = 'ausente';
+                }
+            } else {
+                currentTooth['full_tooth_status'] = 'none'; 
+
+                if (currentStatus === currentTooth[faceKey]) {
+                    currentTooth[faceKey] = 'none';
+                    delete currentTooth[faceKey]; 
+                } else {
+                    currentTooth[faceKey] = currentStatus;
+                }
+            }
+
+            applyStatusToSvg(currentToothId);
+            updateOdontogramDisplay();
+        };
+
+        // --- FUNÇÕES DE RENDERIZAÇÃO DO DENTE ÚNICO ---
+        const generateTooth = (toothId) => {
+            const size = 30; 
+            const id = String(toothId);
+            
+            const isSuperior = (id.startsWith('1') || id.startsWith('2') || id.startsWith('5') || id.startsWith('6'));
+            const lowerKey = isSuperior ? 'P' : 'L'; 
+
+            let teethHtml = '';
+
+            // Oclusal/Incisal (Centro)
+            teethHtml += `<rect class="tooth-face" x="35" y="35" width="30" height="30" data-face="O" data-id="${id}"/>`;
+            // Mesial (Esquerda)
+            teethHtml += `<rect class="tooth-face" x="20" y="35" width="15" height="30" data-face="M" data-id="${id}"/>`;
+            // Distal (Direita)
+            teethHtml += `<rect class="tooth-face" x="65" y="35" width="15" height="30" data-face="D" data-id="${id}"/>`;
+            // Vestibular (V - Cima)
+            teethHtml += `<rect class="tooth-face" x="35" y="20" width="30" height="15" data-face="V" data-id="${id}"/>`;
+            // Lingual/Palatina (P/L - Baixo)
+            teethHtml += `<rect class="tooth-face" x="35" y="65" width="30" height="15" data-face="${lowerKey}" data-id="${id}"/>`;
+            
+            return `
+                <g id="tooth-unit-${id}" transform="translate(0, 0)">
+                    <text class="tooth-number" x="50" y="10" text-anchor="middle">${id}</text>
+                    <g transform="translate(0, 0)">
+                        ${teethHtml}
+                    </g>
+                </g>
+            `;
+        };
+
+        const handleToothSelection = (event) => {
+            const selectedToothId = event.target.value;
+            currentToothId = selectedToothId;
+            const svgContainer = document.getElementById('odontogram-svg');
+            const placeholder = document.getElementById('placeholder-text');
+
+            if (selectedToothId) {
+                svgContainer.innerHTML = generateTooth(selectedToothId);
+                svgContainer.style.display = 'block';
+                placeholder.style.display = 'none';
+
+                const faces = document.querySelectorAll('#odontogram-svg .tooth-face');
+                faces.forEach(face => {
+                    face.addEventListener('click', handleFaceClick);
+                });
+
+                applyStatusToSvg(selectedToothId);
+            } else {
+                svgContainer.innerHTML = '';
+                svgContainer.style.display = 'none';
+                placeholder.style.display = 'block';
+            }
+        };
+
+        const setupOdontogram = () => {
+            const toothSelector = document.getElementById('toothSelector');
+            const svgContainer = document.getElementById('odontogram-svg');
+            
+            allTeeth.forEach(id => {
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = id;
+                toothSelector.appendChild(option);
+            });
+
+            svgContainer.style.display = 'none';
+            toothSelector.addEventListener('change', handleToothSelection);
+
+            const paletteButtons = document.querySelectorAll('.odont-tool');
+            paletteButtons.forEach(button => {
+                button.addEventListener('click', function(event) {
+                    currentStatus = this.getAttribute('data-status');
+                    paletteButtons.forEach(btn => btn.classList.remove('selected'));
+                    this.classList.add('selected');
+                    
+                    if (currentStatus === 'ausente' && currentToothId) {
+                        handleFaceClick(event); 
+                    }
+                });
+            });
+        };
+
+        // --- GERAÇÃO DO RELATÓRIO PARA E-MAIL ---
+        
+        const formatValue = (key, value) => {
+            if (!value || (Array.isArray(value) && value.length === 0) || value === 'normal') {
+                return null; // Ignora valores vazios ou default
+            }
+            if (key === 'dataNascimento') {
+                const date = new Date(value + 'T00:00:00'); // Adiciona T00:00:00 para evitar desvios de fuso
+                return date.toLocaleDateString('pt-BR');
+            }
+            if (Array.isArray(value)) {
+                return value.map(val => statusMapVerbose[val] || val.toUpperCase()).join('; ');
+            }
+            
+            // Trata Radios/Selects/Textareas
+            const verbose = statusMapVerbose[value];
+            return verbose || value; 
+        }
+
+        const appendSection = (report, title, content) => {
+            if (content.length === 0) return report;
+            report += `\n\n=== ${title.toUpperCase()} ===\n`;
+            content.forEach(line => {
+                report += `${line}\n`;
+            });
+            return report;
+        }
+
+        const generateReportBody = (data) => {
+            let report = `\n[RELATÓRIO DE VISITA DOMICILIAR ODONTOLÓGICA - PADRÃO SOAP]\n`;
+            
+            // --- IDENTIFICAÇÃO ---
+            let identification = [];
+            identification.push(`Nome do Paciente: ${data.nome || 'NÃO INFORMADO'}`);
+            if (data.dataNascimento) identification.push(`Data de Nascimento: ${formatValue('dataNascimento', data.dataNascimento)}`);
+            if (data.endereco) identification.push(`Endereço: ${data.endereco}`);
+            report = appendSection(report, "IDENTIFICAÇÃO", identification);
+            
+            // --- 1. S - SUBJETIVO ---
+            let subjetivo = [];
+            if (data.queixaPrincipal) subjetivo.push(`Queixa Principal: ${data.queixaPrincipal.trim()}`);
+            if (data.historicoSaude) subjetivo.push(`Histórico de Saúde: ${data.historicoSaude.trim()}`);
+            if (data.higiene && data.higiene.length > 0) subjetivo.push(`Higiene Bucal: ${formatValue('higiene', data.higiene)}`);
+            if (data.dieta && data.dieta.length > 0) subjetivo.push(`Dieta: ${formatValue('dieta', data.dieta)}`);
+            if (data.vicios && data.vicios.length > 0) subjetivo.push(`Vícios: ${formatValue('vicios', data.vicios)}`);
+            report = appendSection(report, "1. SUBJETIVO (S)", subjetivo);
+
+            // --- 2. O - OBJETIVO ---
+            let objetivo = [];
+            
+            // Exame Clínico
+            if (data.dentesGengivas !== 'normal') objetivo.push(`Dentes e Gengivas: ${data.dentesGengivas === 'alteracao' ? 'Alteração Observada' : data.dentesGengivas}`);
+            if (data.linguaMucosas !== 'normal') objetivo.push(`Língua e Mucosas: ${data.linguaMucosas === 'alteracao' ? 'Alteração Observada' : data.linguaMucosas}`);
+            if (data.palpacaoCervical !== 'normal') objetivo.push(`Palpação Cervical: Linfonodos palpáveis`);
+
+            // Lesões e Necessidades
+            if (data.lesoes && data.lesoes.length > 0) objetivo.push(`Identificação de Lesões: ${formatValue('lesoes', data.lesoes)}`);
+            if (data.necessidades && data.necessidades.length > 0) objetivo.push(`Necessidades de Tratamento: ${formatValue('necessidades', data.necessidades)}`);
+            
+            // Odontograma
+            if (data.odontograma_notacao) objetivo.push(`Registro do Odontograma (FDI): ${data.odontograma_notacao}`);
+            
+            // Funcional
+            if (data.mastigacao && data.mastigacao !== 'normal') objetivo.push(`Avaliação da Mastigação: ${formatValue('mastigacao', data.mastigacao)}`);
+            if (data.degluticao && data.degluticao !== 'normal') objetivo.push(`Avaliação da Deglutição: ${formatValue('degluticao', data.degluticao)}`);
+            if (data.fala && data.fala !== 'normal') objetivo.push(`Avaliação da Fala: ${formatValue('fala', data.fala)}`);
+
+            // Próteses
+            if (data.proteseExistente && data.proteseExistente.length > 0 && data.proteseExistente.some(v => v !== 'nenhuma')) objetivo.push(`Próteses Existentes: ${formatValue('proteseExistente', data.proteseExistente)}`);
+            if (data.necessidadeProtese && data.necessidadeProtese.length > 0) objetivo.push(`Intervenção na Prótese: ${formatValue('necessidadeProtese', data.necessidadeProtese)}`);
+
+            report = appendSection(report, "2. OBJETIVO (O)", objetivo);
+            
+            // --- 3. A - AVALIAÇÃO ---
+            let avaliacao = [];
+            if (data.hipoteseDiagnostica) avaliacao.push(`Hipótese Diagnóstica/Conclusão: ${data.hipoteseDiagnostica.trim()}`);
+            if (data.risco && data.risco.length > 0) avaliacao.push(`Fatores de Risco Avaliados: ${formatValue('risco', data.risco)}`);
+            report = appendSection(report, "3. AVALIAÇÃO (A)", avaliacao);
+
+            // --- 4. P - PLANO ---
+            let plano = [];
+            if (data.orientacao) plano.push(`Orientação Realizada: ${data.orientacao.trim()}`);
+            if (data.condutasPropostas) plano.push(`Plano de Tratamento/Encaminhamentos: ${data.condutasPropostas.trim()}`);
+            report = appendSection(report, "4. PLANO (P)", plano);
+
+            report += `\n\n[FIM DO RELATÓRIO - Gerado em ${new Date().toLocaleString('pt-BR')}]`;
+            
+            return report;
+        };
+
+        // --- LÓGICA DE SUBMISSÃO DO FORMULÁRIO ---
+        document.getElementById('dentalVisitForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const emailInput = document.getElementById('emailDestinatario');
+            if (!emailInput.value) {
+                // Em um ambiente real, faríamos validação completa. Aqui, apenas um feedback simples.
+                console.error("E-mail do destinatário é obrigatório.");
+                alert("Por favor, preencha o e-mail do destinatário.");
+                return;
+            }
+            
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+
+            // Coletando múltiplos valores de checkboxes
+            data.higiene = formData.getAll('higiene');
+            data.dieta = formData.getAll('dieta');
+            data.vicios = formData.getAll('vicios');
+            data.lesoes = formData.getAll('lesoes');
+            data.necessidades = formData.getAll('necessidades');
+            data.proteseExistente = formData.getAll('proteseExistente');
+            data.necessidadeProtese = formData.getAll('necessidadeProtese');
+            data.risco = formData.getAll('risco');
+            
+            // Adiciona o Odontograma Gerado (já atualizado pelo updateOdontogramDisplay)
+            data.odontograma_notacao = getOdontogramNotations();
+
+            const targetEmail = data.emailDestinatario;
+            
+            // 1. Gera o relatório completo
+            const reportBody = generateReportBody(data);
+
+            // 2. Simula o envio de e-mail (atualiza a área de confirmação)
+            document.getElementById('target-email-display').textContent = targetEmail;
+            document.getElementById('report-body').textContent = reportBody;
+            document.getElementById('email-confirmation').classList.remove('hidden');
+
+            // 3. Feedback visual no botão
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            submitButton.textContent = 'Enviado! (Verifique abaixo)';
+            submitButton.classList.remove('bg-green-600', 'hover:bg-green-700');
+            submitButton.classList.add('bg-blue-500');
+
+            // Volta ao normal após 5 segundos
+            setTimeout(() => {
+                submitButton.textContent = 'Salvar e Enviar SOAP';
+                submitButton.classList.remove('bg-blue-500');
+                submitButton.classList.add('bg-green-600', 'hover:bg-green-700');
+            }, 5000);
+            
+            // Opcional: rolar para a confirmação
+            document.getElementById('email-confirmation').scrollIntoView({ behavior: 'smooth' });
+        });
+
+        // --- INICIALIZAÇÃO ---
+        document.addEventListener('DOMContentLoaded', setupOdontogram);
+    </script>
+
+</body>
+</html>
